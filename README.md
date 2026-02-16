@@ -39,7 +39,7 @@ This command publishes config and, in interactive mode, prompts whether to run t
 - `trusted_proxies` (array from env CSV)
 - `forwarded_headers` (default: `CF-Connecting-IP,True-Client-IP,X-Forwarded-For,X-Real-IP`)
 - `override_secret` (optional)
-- `update.enabled`
+- `update.enabled` (default: `true`; scheduler policy toggle)
 - `update.account_id`
 - `update.license_key`
 - `update.edition_id` (default: `GeoLite2-City`)
@@ -74,7 +74,9 @@ php artisan geoip:update-mmdb
 ```php
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('geoip:update-mmdb')->weeklyOn(1, '03:15');
+Schedule::command('geoip:update-mmdb')
+    ->weeklyOn(1, '03:15')
+    ->when(fn () => (bool) config('string-ip-lookup.update.enabled'));
 ```
 
 Ensure system cron runs `php artisan schedule:run` every minute.

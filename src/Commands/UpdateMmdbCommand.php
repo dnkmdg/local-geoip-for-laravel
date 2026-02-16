@@ -24,12 +24,6 @@ final class UpdateMmdbCommand extends Command
         $updateConfig = (array) config('string-ip-lookup.update', []);
         $targetPath = (string) config('string-ip-lookup.database_path', '');
 
-        if (! (bool) ($updateConfig['enabled'] ?? false)) {
-            $this->error('GeoIP MMDB update is disabled (string-ip-lookup.update.enabled=false).');
-
-            return self::FAILURE;
-        }
-
         $accountId = trim((string) ($updateConfig['account_id'] ?? ''));
         $licenseKey = trim((string) ($updateConfig['license_key'] ?? ''));
         $editionId = trim((string) ($updateConfig['edition_id'] ?? 'GeoLite2-City'));

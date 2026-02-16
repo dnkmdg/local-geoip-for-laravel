@@ -16,7 +16,7 @@ return [
     'forwarded_headers' => $forwardedHeaders,
     'override_secret' => env('STRING_IP_LOOKUP_OVERRIDE_SECRET'),
     'update' => [
-        'enabled' => (bool) env('STRING_IP_LOOKUP_UPDATE_ENABLED', false),
+        'enabled' => (bool) env('STRING_IP_LOOKUP_UPDATE_ENABLED', true),
         'account_id' => env('MAXMIND_ACCOUNT_ID'),
         'license_key' => env('MAXMIND_LICENSE_KEY'),
         'edition_id' => env('STRING_IP_LOOKUP_EDITION_ID', 'GeoLite2-City'),
