@@ -17,11 +17,10 @@ Local IP geolocation for Laravel using MaxMind MMDB.
 composer require dnkmdg/local-geoip-for-laravel geoip2/geoip2
 ```
 
-## Publish config
-
-```bash
-php artisan vendor:publish --tag=local-geoip-config
-```
+Create a MaxMind GeoLite account and license key before first database download:
+- Signup: [https://www.maxmind.com/en/geolite2/signup](https://www.maxmind.com/en/geolite2/signup)
+- License keys: [https://www.maxmind.com/en/accounts/current/license-key](https://www.maxmind.com/en/accounts/current/license-key)
+- Update docs: [https://dev.maxmind.com/geoip/updating-databases/](https://dev.maxmind.com/geoip/updating-databases/)
 
 ## Guided install (with first download prompt)
 
@@ -33,16 +32,16 @@ This command publishes config and, in interactive mode, prompts whether to run t
 
 ## Config keys
 
-- `database_path` (default: `storage/app/geoip/GeoLite2-City.mmdb`)
+- `database_path` (default: `storage/app/geoip/GeoLite2-Country.mmdb`)
 - `cache_ttl` (seconds, default: `86400`)
 - `database_max_age_days` (default: `45`)
 - `trusted_proxies` (array from env CSV)
 - `forwarded_headers` (default: `CF-Connecting-IP,True-Client-IP,X-Forwarded-For,X-Real-IP`)
 - `override_secret` (optional)
 - `update.enabled` (default: `true`; scheduler policy toggle)
-- `update.account_id` (`LOCAL_GEOIP_UPDATE_ACCOUNT_ID`, legacy fallback: `MAXMIND_ACCOUNT_ID`)
-- `update.license_key` (`LOCAL_GEOIP_UPDATE_LICENSE_KEY`, legacy fallback: `MAXMIND_LICENSE_KEY`)
-- `update.edition_id` (`LOCAL_GEOIP_UPDATE_EDITION_ID`, default: `GeoLite2-City`)
+- `update.account_id` (`MAXMIND_ACCOUNT_ID`)
+- `update.license_key` (`MAXMIND_LICENSE_KEY`)
+- `update.edition_id` (`LOCAL_GEOIP_UPDATE_EDITION_ID`, default: `GeoLite2-Country`)
 - `update.download_url` (`LOCAL_GEOIP_UPDATE_DOWNLOAD_URL`, default: `https://download.maxmind.com/geoip/databases/{edition_id}/download`)
 
 ## Usage
@@ -71,13 +70,38 @@ use Dnkmdg\LocalGeoIp\Facades\GeoIpLookup;
 $location = GeoIpLookup::resolve('8.8.8.8');
 ```
 
+## Consumer testing
+
+Prefer contract-first tests in consuming apps:
+- Test app behavior against `Dnkmdg\LocalGeoIp\Contracts\GeoIpLookup`.
+- Keep one adapter/integration test with real MMDB wiring; keep business tests contract-driven.
+
+Use package testing helpers in consumer tests:
+- `Dnkmdg\LocalGeoIp\Testing\InteractsWithLocalGeoIp`
+- `fakeGeoIp([...])` to bind deterministic lookup responses.
+- `fakeRequestIps([...])` to bypass proxy/header parsing and force candidate order.
+
+Fixture strategy:
+- Use deterministic local MMDB fixtures (country DB is usually enough).
+- Avoid live MaxMind downloads in tests.
+
+Failure-mode checklist for consuming apps:
+- Missing database file.
+- Invalid/private/reserved IP path.
+- Lookup returns `null` path.
+- Updater credential failure (`401`) and permission/network failure (`403`/connection).
+
+Scheduler tests in consuming apps:
+- Assert `geoip:update-mmdb` is scheduled with your expected cadence/timezone.
+- Gate scheduled execution with `config('local-geoip.update.enabled')` and assert both enabled/disabled paths.
+
 ## Update MMDB
 
 ```bash
 php artisan geoip:update-mmdb
 ```
 
-If you get `HTTP 401`, verify `LOCAL_GEOIP_UPDATE_ACCOUNT_ID` + `LOCAL_GEOIP_UPDATE_LICENSE_KEY` (or legacy `MAXMIND_*`), confirm the key can download GeoLite databases, then run `php artisan config:clear`.
+If you get `HTTP 401`, verify `MAXMIND_ACCOUNT_ID` + `MAXMIND_LICENSE_KEY`, confirm the key can download GeoLite databases, then run `php artisan config:clear`.
 If you get `HTTP 403` or connection errors, ensure your proxy/firewall allows HTTPS redirects to `mm-prod-geoip-databases.a2649acb697e2c09b632799562c076f2.r2.cloudflarestorage.com`.
 
 ## Scheduler integration (in consuming app)
@@ -91,29 +115,3 @@ Schedule::command('geoip:update-mmdb')
 ```
 
 Ensure system cron runs `php artisan schedule:run` every minute.
-
-## Publishing
-
-1. Push the repository to GitHub.
-2. Add this package to Packagist: `dnkmdg/local-geoip-for-laravel`.
-3. In Packagist, enable auto-update via the GitHub hook.
-4. Create a semantic version tag and push it:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-`Auto Tag` workflow creates and pushes the next patch tag on each push to `main` (use `[skip-tag]` in commit message to skip).
-
-Or use the helper script (suggests next patch tag automatically):
-
-```bash
-composer release:tag
-```
-
-Override tag explicitly:
-
-```bash
-composer release:tag -- v0.2.0
-```

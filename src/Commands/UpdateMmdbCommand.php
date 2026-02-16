@@ -69,7 +69,7 @@ final class UpdateMmdbCommand extends Command
             if (! $response->successful()) {
                 if ($response->status() === 401) {
                     $this->error('MMDB download unauthorized (HTTP 401).');
-                    $this->line('Check LOCAL_GEOIP_UPDATE_ACCOUNT_ID and LOCAL_GEOIP_UPDATE_LICENSE_KEY (or legacy MAXMIND_ACCOUNT_ID/MAXMIND_LICENSE_KEY), ensure the key has GeoLite download access, and clear config cache (php artisan config:clear).');
+                    $this->line('Check MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY, ensure the key has GeoLite download access, and clear config cache (php artisan config:clear).');
 
                     return self::FAILURE;
                 }

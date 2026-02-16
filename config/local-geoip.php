@@ -17,9 +17,8 @@ return [
     'override_secret' => env('LOCAL_GEOIP_OVERRIDE_SECRET'),
     'update' => [
         'enabled' => (bool) env('LOCAL_GEOIP_UPDATE_ENABLED', true),
-        // Preferred env names are LOCAL_GEOIP_UPDATE_*. MAXMIND_* names are legacy fallbacks.
-        'account_id' => env('LOCAL_GEOIP_UPDATE_ACCOUNT_ID', env('MAXMIND_ACCOUNT_ID')),
-        'license_key' => env('LOCAL_GEOIP_UPDATE_LICENSE_KEY', env('MAXMIND_LICENSE_KEY')),
+        'account_id' => env('MAXMIND_ACCOUNT_ID'),
+        'license_key' => env('MAXMIND_LICENSE_KEY'),
         'edition_id' => env('LOCAL_GEOIP_UPDATE_EDITION_ID', env('LOCAL_GEOIP_EDITION_ID', 'GeoLite2-Country')),
         'download_url' => env(
             'LOCAL_GEOIP_UPDATE_DOWNLOAD_URL',

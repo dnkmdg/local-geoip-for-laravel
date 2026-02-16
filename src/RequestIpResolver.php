@@ -7,7 +7,7 @@ namespace Dnkmdg\LocalGeoIp;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\IpUtils;
 
-final class RequestIpResolver
+class RequestIpResolver
 {
     /**
      * @param array<int, string> $trustedProxies
