@@ -33,20 +33,20 @@ final class MmdbGeoIpLookup implements GeoIpLookup
             return null;
         }
 
-        $databasePath = (string) $this->config->get('string-ip-lookup.database_path', '');
+        $databasePath = (string) $this->config->get('local-geoip.database_path', '');
         if ($databasePath === '' || ! is_file($databasePath)) {
             return null;
         }
 
         $this->emitStaleWarningIfNeeded($databasePath);
 
-        $ttl = (int) $this->config->get('string-ip-lookup.cache_ttl', 86400);
-        $key = sprintf('string-ip-lookup:lookup:%s', $ipAddress);
+        $ttl = (int) $this->config->get('local-geoip.cache_ttl', 86400);
+        $key = sprintf('local-geoip:lookup:%s', $ipAddress);
 
         $resolver = fn (): ?GeoIpLocationData => $this->readFromDatabase($databasePath, $ipAddress);
 
         if (method_exists($this->cache->getStore(), 'tags')) {
-            return $this->cache->tags(['string-ip-lookup'])->remember($key, $ttl, $resolver);
+            return $this->cache->tags(['local-geoip'])->remember($key, $ttl, $resolver);
         }
 
         return $this->cache->remember($key, $ttl, $resolver);
@@ -67,7 +67,7 @@ final class MmdbGeoIpLookup implements GeoIpLookup
             return;
         }
 
-        $maxAgeDays = (int) $this->config->get('string-ip-lookup.database_max_age_days', 45);
+        $maxAgeDays = (int) $this->config->get('local-geoip.database_max_age_days', 45);
         if ($maxAgeDays <= 0) {
             return;
         }

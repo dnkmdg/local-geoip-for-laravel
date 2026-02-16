@@ -17,7 +17,7 @@ final class MmdbGeoIpLookupTest extends TestCase
         $lookup = new MmdbGeoIpLookup(
             cache: new CacheRepository(new ArrayStore()),
             config: new ConfigRepository([
-                'string-ip-lookup' => [
+                'local-geoip' => [
                     'database_path' => '/tmp/does-not-matter.mmdb',
                 ],
             ]),
@@ -34,7 +34,7 @@ final class MmdbGeoIpLookupTest extends TestCase
         $lookup = new MmdbGeoIpLookup(
             cache: new CacheRepository(new ArrayStore()),
             config: new ConfigRepository([
-                'string-ip-lookup' => [
+                'local-geoip' => [
                     'database_path' => '/tmp/missing-db.mmdb',
                     'cache_ttl' => 60,
                 ],
@@ -52,7 +52,7 @@ final class MmdbGeoIpLookupTest extends TestCase
         $lookup = new MmdbGeoIpLookup(
             cache: new CacheRepository(new ArrayStore()),
             config: new ConfigRepository([
-                'string-ip-lookup' => [
+                'local-geoip' => [
                     'database_path' => $fixture,
                     'cache_ttl' => 60,
                 ],

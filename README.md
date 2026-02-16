@@ -20,7 +20,7 @@ composer require dnkmdg/local-geoip-for-laravel geoip2/geoip2
 ## Publish config
 
 ```bash
-php artisan vendor:publish --tag=string-ip-lookup-config
+php artisan vendor:publish --tag=local-geoip-config
 ```
 
 ## Guided install (with first download prompt)
@@ -40,10 +40,10 @@ This command publishes config and, in interactive mode, prompts whether to run t
 - `forwarded_headers` (default: `CF-Connecting-IP,True-Client-IP,X-Forwarded-For,X-Real-IP`)
 - `override_secret` (optional)
 - `update.enabled` (default: `true`; scheduler policy toggle)
-- `update.account_id`
-- `update.license_key`
-- `update.edition_id` (default: `GeoLite2-City`)
-- `update.download_url` (default: `https://download.maxmind.com/app/geoip_download`)
+- `update.account_id` (`LOCAL_GEOIP_UPDATE_ACCOUNT_ID`, legacy fallback: `MAXMIND_ACCOUNT_ID`)
+- `update.license_key` (`LOCAL_GEOIP_UPDATE_LICENSE_KEY`, legacy fallback: `MAXMIND_LICENSE_KEY`)
+- `update.edition_id` (`LOCAL_GEOIP_UPDATE_EDITION_ID`, default: `GeoLite2-City`)
+- `update.download_url` (`LOCAL_GEOIP_UPDATE_DOWNLOAD_URL`, default: `https://download.maxmind.com/geoip/databases/{edition_id}/download`)
 
 ## Usage
 
@@ -69,6 +69,9 @@ foreach ($candidates as $candidate) {
 php artisan geoip:update-mmdb
 ```
 
+If you get `HTTP 401`, verify `LOCAL_GEOIP_UPDATE_ACCOUNT_ID` + `LOCAL_GEOIP_UPDATE_LICENSE_KEY` (or legacy `MAXMIND_*`), confirm the key can download GeoLite databases, then run `php artisan config:clear`.
+If you get `HTTP 403` or connection errors, ensure your proxy/firewall allows HTTPS redirects to `mm-prod-geoip-databases.a2649acb697e2c09b632799562c076f2.r2.cloudflarestorage.com`.
+
 ## Scheduler integration (in consuming app)
 
 ```php
@@ -76,7 +79,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('geoip:update-mmdb')
     ->weeklyOn(1, '03:15')
-    ->when(fn () => (bool) config('string-ip-lookup.update.enabled'));
+    ->when(fn () => (bool) config('local-geoip.update.enabled'));
 ```
 
 Ensure system cron runs `php artisan schedule:run` every minute.

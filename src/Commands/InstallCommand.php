@@ -15,7 +15,7 @@ final class InstallCommand extends Command
     public function handle(): int
     {
         $this->call('vendor:publish', [
-            '--tag' => 'string-ip-lookup-config',
+            '--tag' => 'local-geoip-config',
         ]);
 
         if ((bool) $this->option('no-download')) {

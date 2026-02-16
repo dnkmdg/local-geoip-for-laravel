@@ -13,12 +13,12 @@ final class LocalGeoIpServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/string-ip-lookup.php', 'string-ip-lookup');
+        $this->mergeConfigFrom(__DIR__.'/../config/local-geoip.php', 'local-geoip');
 
         $this->app->singleton(GeoIpLookup::class, MmdbGeoIpLookup::class);
 
         $this->app->singleton(RequestIpResolver::class, function ($app): RequestIpResolver {
-            $config = $app['config']->get('string-ip-lookup', []);
+            $config = $app['config']->get('local-geoip', []);
 
             return new RequestIpResolver(
                 trustedProxies: $config['trusted_proxies'] ?? [],
@@ -30,8 +30,8 @@ final class LocalGeoIpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__.'/../config/string-ip-lookup.php' => config_path('string-ip-lookup.php'),
-        ], 'string-ip-lookup-config');
+            __DIR__.'/../config/local-geoip.php' => config_path('local-geoip.php'),
+        ], 'local-geoip-config');
 
         if ($this->app->runningInConsole()) {
             $this->commands([

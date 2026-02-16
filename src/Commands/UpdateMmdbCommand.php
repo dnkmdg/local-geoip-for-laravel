@@ -6,6 +6,7 @@ namespace Dnkmdg\LocalGeoIp\Commands;
 
 use GeoIp2\Database\Reader;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use PharData;
@@ -21,15 +22,16 @@ final class UpdateMmdbCommand extends Command
 
     public function handle(): int
     {
-        $updateConfig = (array) config('string-ip-lookup.update', []);
-        $targetPath = (string) config('string-ip-lookup.database_path', '');
+        $updateConfig = (array) config('local-geoip.update', []);
+        $targetPath = (string) config('local-geoip.database_path', '');
 
         $accountId = trim((string) ($updateConfig['account_id'] ?? ''));
         $licenseKey = trim((string) ($updateConfig['license_key'] ?? ''));
         $editionId = trim((string) ($updateConfig['edition_id'] ?? 'GeoLite2-City'));
-        $downloadUrl = trim((string) ($updateConfig['download_url'] ?? 'https://download.maxmind.com/app/geoip_download'));
+        $downloadUrl = trim((string) ($updateConfig['download_url'] ?? 'https://download.maxmind.com/geoip/databases/{edition_id}/download'));
+        $resolvedDownloadUrl = str_replace('{edition_id}', rawurlencode($editionId), $downloadUrl);
 
-        if ($accountId === '' || $licenseKey === '' || $editionId === '' || $downloadUrl === '' || $targetPath === '') {
+        if ($accountId === '' || $licenseKey === '' || $editionId === '' || $downloadUrl === '' || $resolvedDownloadUrl === '' || $targetPath === '') {
             $this->error('Missing required MMDB update configuration values.');
 
             return self::FAILURE;
@@ -43,15 +45,39 @@ final class UpdateMmdbCommand extends Command
         $extractDir = $workDir.'/extract';
 
         try {
+            $query = ['suffix' => 'tar.gz'];
+            // Backward compatibility for legacy MaxMind endpoint.
+            if (! str_contains($resolvedDownloadUrl, '{edition_id}') && str_contains($downloadUrl, 'app/geoip_download')) {
+                $query['edition_id'] = $editionId;
+            }
+
             $response = Http::withBasicAuth($accountId, $licenseKey)
+                ->withOptions([
+                    // MaxMind download endpoints redirect to R2 presigned URLs.
+                    'allow_redirects' => [
+                        'max' => 10,
+                        'strict' => true,
+                    ],
+                ])
                 ->timeout(120)
                 ->sink($archivePath)
-                ->get($downloadUrl, [
-                    'edition_id' => $editionId,
-                    'suffix' => 'tar.gz',
-                ]);
+                ->get($resolvedDownloadUrl, $query);
 
             if (! $response->successful()) {
+                if ($response->status() === 401) {
+                    $this->error('MMDB download unauthorized (HTTP 401).');
+                    $this->line('Check LOCAL_GEOIP_UPDATE_ACCOUNT_ID and LOCAL_GEOIP_UPDATE_LICENSE_KEY (or legacy MAXMIND_ACCOUNT_ID/MAXMIND_LICENSE_KEY), ensure the key has GeoLite download access, and clear config cache (php artisan config:clear).');
+
+                    return self::FAILURE;
+                }
+
+                if ($response->status() === 403) {
+                    $this->error('MMDB download forbidden (HTTP 403).');
+                    $this->line('Check license entitlement/subscription status and confirm requests to mm-prod-geoip-databases.a2649acb697e2c09b632799562c076f2.r2.cloudflarestorage.com are allowed by proxy/firewall.');
+
+                    return self::FAILURE;
+                }
+
                 $this->error(sprintf('MMDB download failed with HTTP %s.', $response->status()));
 
                 return self::FAILURE;
@@ -109,6 +135,12 @@ final class UpdateMmdbCommand extends Command
             $this->info(sprintf('MMDB updated successfully: %s', $targetPath));
 
             return self::SUCCESS;
+        } catch (ConnectionException $e) {
+            $this->error('MMDB download connection failed.');
+            $this->line('Ensure outbound HTTPS and DNS work and that proxy/firewall allows redirects to mm-prod-geoip-databases.a2649acb697e2c09b632799562c076f2.r2.cloudflarestorage.com.');
+            $this->line(sprintf('Connection error: %s', $e->getMessage()));
+
+            return self::FAILURE;
         } catch (Throwable $e) {
             $this->error(sprintf('MMDB update failed: %s', $e->getMessage()));
 
