@@ -1,19 +1,47 @@
-name: Release
+name: Auto Tag
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
-  release:
+  tag:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip-tag]')"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          fetch-depth: 0
+
+      - name: Create next patch tag
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          if git tag --points-at HEAD | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "HEAD is already tagged. Skipping."
+            exit 0
+          fi
+
+          latest_tag="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
+
+          if [ -z "${latest_tag}" ]; then
+            next_tag="v0.0.1"
+          else
+            version="${latest_tag#v}"
+            IFS='.' read -r major minor patch <<< "${version}"
+            next_tag="v${major}.${minor}.$((patch + 1))"
+          fi
+
+          echo "Creating tag ${next_tag}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${next_tag}"
+          git push origin "${next_tag}"

@@ -91,7 +91,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-`Release` workflow creates the GitHub release for pushed tags matching `v*.*.*`.
+`Auto Tag` workflow creates and pushes the next patch tag on each push to `main` (use `[skip-tag]` in commit message to skip).
 
 Or use the helper script (suggests next patch tag automatically):
 
