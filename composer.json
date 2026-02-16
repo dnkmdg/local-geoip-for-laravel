@@ -1,0 +1,40 @@
+{
+  "name": "dnkmdg/local-geoip-for-laravel",
+  "description": "Local IP geolocation for Laravel using MaxMind MMDB",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.1",
+    "geoip2/geoip2": "^3.3",
+    "illuminate/cache": "^10.0|^11.0|^12.0",
+    "illuminate/config": "^10.0|^11.0|^12.0",
+    "illuminate/console": "^10.0|^11.0|^12.0",
+    "illuminate/contracts": "^10.0|^11.0|^12.0",
+    "illuminate/http": "^10.0|^11.0|^12.0",
+    "illuminate/support": "^10.0|^11.0|^12.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
+    "phpunit/phpunit": "^10.5|^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Dnkmdg\\LocalGeoIp\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Dnkmdg\\LocalGeoIp\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Dnkmdg\\LocalGeoIp\\LocalGeoIpServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "phpunit"
+  }
+}
