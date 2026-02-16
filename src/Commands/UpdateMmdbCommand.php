@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Dnkmdg\LocalGeoIp\Commands;
 
 use GeoIp2\Database\Reader;
+use GeoIp2\Exception\AddressNotFoundException;
+use BadMethodCallException;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\File;
@@ -19,6 +21,7 @@ final class UpdateMmdbCommand extends Command
     protected $signature = 'geoip:update-mmdb';
 
     protected $description = 'Download and atomically update the local MaxMind MMDB database';
+    private ?string $lastValidationError = null;
 
     public function handle(): int
     {
@@ -27,7 +30,7 @@ final class UpdateMmdbCommand extends Command
 
         $accountId = trim((string) ($updateConfig['account_id'] ?? ''));
         $licenseKey = trim((string) ($updateConfig['license_key'] ?? ''));
-        $editionId = trim((string) ($updateConfig['edition_id'] ?? 'GeoLite2-City'));
+        $editionId = trim((string) ($updateConfig['edition_id'] ?? 'GeoLite2-Country'));
         $downloadUrl = trim((string) ($updateConfig['download_url'] ?? 'https://download.maxmind.com/geoip/databases/{edition_id}/download'));
         $resolvedDownloadUrl = str_replace('{edition_id}', rawurlencode($editionId), $downloadUrl);
 
@@ -103,7 +106,7 @@ final class UpdateMmdbCommand extends Command
             }
 
             if (! $this->validateMmdb($mmdbPath)) {
-                $this->error('Downloaded MMDB validation failed.');
+                $this->error(sprintf('Downloaded MMDB validation failed%s.', $this->lastValidationError ? ': '.$this->lastValidationError : ''));
 
                 return self::FAILURE;
             }
@@ -120,7 +123,7 @@ final class UpdateMmdbCommand extends Command
 
             if (! $this->validateMmdb($tmpTarget)) {
                 @unlink($tmpTarget);
-                $this->error('Temporary MMDB validation failed.');
+                $this->error(sprintf('Temporary MMDB validation failed%s.', $this->lastValidationError ? ': '.$this->lastValidationError : ''));
 
                 return self::FAILURE;
             }
@@ -152,13 +155,27 @@ final class UpdateMmdbCommand extends Command
 
     private function validateMmdb(string $path): bool
     {
+        $this->lastValidationError = null;
+
         try {
             $reader = new Reader($path);
-            $reader->city('8.8.8.8');
+            try {
+                $reader->city('8.8.8.8');
+            } catch (BadMethodCallException) {
+                try {
+                    $reader->country('8.8.8.8');
+                } catch (AddressNotFoundException) {
+                    // Database is valid even if this probe IP is absent.
+                }
+            } catch (AddressNotFoundException) {
+                // Database is valid even if this probe IP is absent.
+            }
             $reader->close();
 
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->lastValidationError = $e->getMessage();
+
             return false;
         }
     }
