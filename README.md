@@ -92,3 +92,15 @@ git push origin v0.1.0
 ```
 
 `Release` workflow creates the GitHub release for pushed tags matching `v*.*.*`.
+
+Or use the helper script (suggests next patch tag automatically):
+
+```bash
+composer release:tag
+```
+
+Override tag explicitly:
+
+```bash
+composer release:tag -- v0.2.0
+```

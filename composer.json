@@ -35,6 +35,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit"
+    "test": "phpunit",
+    "release:tag": "bash scripts/release-tag.sh"
   }
 }
