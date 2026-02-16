@@ -72,28 +72,73 @@ $location = GeoIpLookup::resolve('8.8.8.8');
 
 ## Consumer testing
 
-Prefer contract-first tests in consuming apps:
-- Test app behavior against `Dnkmdg\LocalGeoIp\Contracts\GeoIpLookup`.
-- Keep one adapter/integration test with real MMDB wiring; keep business tests contract-driven.
+Example: fake contract responses in a feature test
 
-Use package testing helpers in consumer tests:
-- `Dnkmdg\LocalGeoIp\Testing\InteractsWithLocalGeoIp`
-- `fakeGeoIp([...])` to bind deterministic lookup responses.
-- `fakeRequestIps([...])` to bypass proxy/header parsing and force candidate order.
+```php
+<?php
 
-Fixture strategy:
-- Use deterministic local MMDB fixtures (country DB is usually enough).
-- Avoid live MaxMind downloads in tests.
+use Dnkmdg\LocalGeoIp\Data\GeoIpLocationData;
+use Dnkmdg\LocalGeoIp\Testing\InteractsWithLocalGeoIp;
 
-Failure-mode checklist for consuming apps:
-- Missing database file.
-- Invalid/private/reserved IP path.
-- Lookup returns `null` path.
-- Updater credential failure (`401`) and permission/network failure (`403`/connection).
+uses(InteractsWithLocalGeoIp::class);
 
-Scheduler tests in consuming apps:
-- Assert `geoip:update-mmdb` is scheduled with your expected cadence/timezone.
-- Gate scheduled execution with `config('local-geoip.update.enabled')` and assert both enabled/disabled paths.
+it('applies market from geoip country', function () {
+    $this->fakeGeoIp([
+        '8.8.8.8' => new GeoIpLocationData(
+            ipAddress: '8.8.8.8',
+            countryCode: 'SE',
+            countryName: 'Sweden',
+            city: null,
+            regionCode: null,
+            regionName: null,
+            latitude: null,
+            longitude: null,
+            timeZone: null,
+            postalCode: null,
+        ),
+    ]);
+
+    $response = $this->withServerVariables(['REMOTE_ADDR' => '8.8.8.8'])
+        ->get('/market-aware-endpoint');
+
+    $response->assertOk();
+    $response->assertSessionHas('market', 'se');
+});
+```
+
+Example: force request candidate IP order
+
+```php
+<?php
+
+use Dnkmdg\LocalGeoIp\Testing\InteractsWithLocalGeoIp;
+
+uses(InteractsWithLocalGeoIp::class);
+
+it('uses first candidate ip from resolver fake', function () {
+    $this->fakeRequestIps(['203.0.113.11', '203.0.113.12']);
+
+    $response = $this->get('/market-aware-endpoint');
+
+    $response->assertOk();
+    $response->assertSessionHas('resolved_ip', '203.0.113.11');
+});
+```
+
+Example: scheduler gating by config
+
+```php
+<?php
+
+use Illuminate\Support\Facades\Schedule;
+
+it('schedules geoip update only when enabled', function () {
+    config()->set('local-geoip.update.enabled', true);
+    app(\App\Console\Kernel::class)->schedule(Schedule::getFacadeRoot());
+    expect(collect(Schedule::events())->pluck('command')->implode(' '))
+        ->toContain('geoip:update-mmdb');
+});
+```
 
 ## Update MMDB
 
