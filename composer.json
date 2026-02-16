@@ -31,7 +31,10 @@
     "laravel": {
       "providers": [
         "Dnkmdg\\LocalGeoIp\\LocalGeoIpServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "GeoIpLookup": "Dnkmdg\\LocalGeoIp\\Facades\\GeoIpLookup"
+      }
     }
   },
   "scripts": {

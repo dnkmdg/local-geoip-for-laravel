@@ -63,6 +63,14 @@ foreach ($candidates as $candidate) {
 }
 ```
 
+Facade usage:
+
+```php
+use Dnkmdg\LocalGeoIp\Facades\GeoIpLookup;
+
+$location = GeoIpLookup::resolve('8.8.8.8');
+```
+
 ## Update MMDB
 
 ```bash
